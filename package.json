@@ -1,0 +1,29 @@
+{
+  "name": "@aadiaiagent/llm-gateway",
+  "version": "0.1.0",
+  "description": "Multi-provider LLM gateway with routing, rate limits, and usage logs",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "example": "tsx examples/basic.ts"
+  },
+  "engines": { "node": ">=20" },
+  "keywords": ["llm", "gateway", "routing", "rate-limit", "ai"],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.9"
+  }
+}
