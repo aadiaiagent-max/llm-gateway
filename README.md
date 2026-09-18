@@ -2,7 +2,7 @@
 
 A small, typed **LLM gateway**: multi-provider routing, per-tenant rate limits, and usage logs.
 
-Portfolio project for Senior SWE / AI-platform roles — the control plane between your apps and model vendors.
+The control plane between your apps and model vendors. Small surface area — readable in one sitting.
 
 ## Why this exists
 
@@ -56,7 +56,7 @@ const res = await gw.chat({
 ## Design choices
 
 - **Provider adapters** — swap mocks for real HTTP clients behind the same interface
-- **Token bucket limits** — simple, interview-friendly, per-tenant
+- **Token bucket limits** — simple, readable, per-tenant
 - **Failover** — try the next provider if the primary throws
 - **Usage log** — request counts + tokens by tenant
 
