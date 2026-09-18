@@ -9,6 +9,7 @@ export type {
 export { MockProvider } from "./providers/MockProvider.js";
 export { TokenBucket, TenantRateLimiter, RateLimitError } from "./ratelimit/TokenBucket.js";
 export { UsageLog } from "./usage/UsageLog.js";
+export type { UsageFilter } from "./usage/UsageLog.js";
 export { ModelRouter, RoutingError } from "./router/Router.js";
 export type { RouteDecision } from "./router/Router.js";
 export { Gateway } from "./server/Gateway.js";

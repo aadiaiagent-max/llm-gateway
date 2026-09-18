@@ -14,6 +14,8 @@ export interface GatewayOptions {
   rateLimitCapacity?: number;
   /** Tokens refilled per second per tenant. */
   rateLimitRefillPerSecond?: number;
+  /** Skip a provider after failure for this many ms. Default: 30_000. */
+  unhealthyCooldownMs?: number;
   now?: () => number;
 }
 
@@ -22,6 +24,8 @@ export class Gateway {
   private readonly limiter: TenantRateLimiter;
   readonly usage = new UsageLog();
   private readonly now: () => number;
+  private readonly unhealthyCooldownMs: number;
+  private readonly unhealthyUntil = new Map<ProviderName, number>();
 
   constructor(opts: GatewayOptions) {
     this.router = new ModelRouter(opts.providers);
@@ -31,6 +35,26 @@ export class Gateway {
       opts.now,
     );
     this.now = opts.now ?? (() => Date.now());
+    this.unhealthyCooldownMs = opts.unhealthyCooldownMs ?? 30_000;
+  }
+
+  /** Current rate-limit headers for a tenant (Limit / Remaining / Retry-After). */
+  rateLimitHeaders(tenantId: string): Record<string, string> {
+    return this.limiter.rateLimitHeaders(tenantId);
+  }
+
+  isUnhealthy(provider: ProviderName): boolean {
+    const until = this.unhealthyUntil.get(provider);
+    if (until === undefined) return false;
+    if (this.now() >= until) {
+      this.unhealthyUntil.delete(provider);
+      return false;
+    }
+    return true;
+  }
+
+  markUnhealthy(provider: ProviderName): void {
+    this.unhealthyUntil.set(provider, this.now() + this.unhealthyCooldownMs);
   }
 
   async chat(
@@ -58,7 +82,27 @@ export class Gateway {
       throw err;
     }
 
-    const candidates = this.router.candidates(req.model);
+    const candidates = this.router
+      .candidates(req.model)
+      .filter((p) => !this.isUnhealthy(p.name));
+
+    if (candidates.length === 0) {
+      const err = new Error(`no healthy providers for model ${req.model}`);
+      this.usage.record({
+        at: started,
+        tenantId,
+        provider: "none",
+        model: req.model,
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens: 0,
+        latencyMs: this.now() - started,
+        ok: false,
+        error: err.message,
+      });
+      throw err;
+    }
+
     if (opts?.preferredProvider) {
       candidates.sort((a, b) => {
         if (a.name === opts.preferredProvider) return -1;
@@ -85,6 +129,7 @@ export class Gateway {
         return res;
       } catch (err) {
         lastError = err;
+        this.markUnhealthy(provider.name);
       }
     }
 
